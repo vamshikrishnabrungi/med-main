@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import './Header.css';
+import LoginModal from './LoginModal';
+import { useAuth } from '@/context/AuthContext';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [showLogin, setShowLogin] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +24,16 @@ const Header = () => {
   const whoWeServeMenu = [
     { label: 'Oncology', path: '/specialties/oncology' },
   ];
+
+  const handleLoginSuccess = () => {
+    setShowLogin(false);
+    navigate('/owner-dashboard');
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <>
@@ -73,11 +88,23 @@ const Header = () => {
           </nav>
 
           <div className="header-actions">
-            <button className="btn-link">SIGN IN</button>
-            <Link to="/contact" className="btn-primary">GET STARTED</Link>
+            {user ? (
+              <>
+                <Link to="/owner-dashboard" className="btn-link">Dashboard</Link>
+                <button className="btn-primary btn-logout" onClick={handleLogout}>Sign Out</button>
+              </>
+            ) : (
+              <>
+                <button className="btn-link" onClick={() => setShowLogin(true)}>SIGN IN</button>
+                <Link to="/contact" className="btn-primary">GET STARTED</Link>
+              </>
+            )}
           </div>
         </div>
       </header>
+      {showLogin && (
+        <LoginModal onClose={() => setShowLogin(false)} onSuccess={handleLoginSuccess} />
+      )}
     </>
   );
 };
