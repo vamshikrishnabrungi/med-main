@@ -1,0 +1,240 @@
+Perfect — you’ve just defined the foundation of a **multi-tenant SaaS clinic management platform** with **role-based sub-systems** (Receptionist | Doctor | Pharmacy) that automatically eliminates payment and prescription fraud.
+
+Below is a full **blueprint for the website architecture**, broken down into **product hierarchy, user flow, modules, database, and tech stack** so you can hand this to your dev team or start building in Next.js 14.
+
+---
+
+## 🧩 1. Core Concept – Multi-Tenant SaaS Model
+
+| Level                                 | Description                                                                                                                                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Root Website (Platform Layer)**     | A single web app hosted on your domain (e.g., `medtrust.ai`). Manages registration of hospitals/clinics, billing plans, and authentication.                                      |
+| **Tenant Workspace (Hospital Layer)** | When a hospital/clinic registers, the system creates an **isolated workspace** (logical tenant) with its own staff, patients, inventory, and settings.                           |
+| **Role Sub-Accounts (User Layer)**    | Within a hospital workspace, the admin can invite users as **Receptionist, Doctor, Pharmacy, or Admin**. Each logs in via the same domain but is routed to their role dashboard. |
+
+> Think of it as how Slack or Notion handle multiple organizations under one platform.
+
+---
+
+## 🧠 2. Functional Flow Overview
+
+```
+[ Platform Landing Page ]
+      │
+      ├─→ Hospital / Clinic Registration → creates workspace + admin account
+      │
+      └─→ Admin Dashboard
+              ├─ Add / Invite Receptionist
+              ├─ Add / Invite Doctor
+              ├─ Add / Invite Pharmacy
+              │
+              └─ Monitor analytics / revenue / logs
+
+[ Receptionist Login ]
+      ├─ Register patient (creates profile + visit ID)
+      ├─ Record consultation fee + payment mode
+      ├─ System sends WhatsApp e-receipt to patient (QR + amount)
+      └─ Adds patient to doctor's queue
+
+[ Doctor Login ]
+      ├─ Opens patient visit from queue
+      ├─ Adds consultation summary & treatment notes
+      ├─ Generates e-prescription
+      └─ Sends digital Rx to patient (WhatsApp + printable PDF)
+                ↓
+           Updates status → “sent to pharmacy”
+
+[ Pharmacy Login ]
+      ├─ Sees pending prescriptions from same hospital
+      ├─ Marks each item → Purchased / Denied / No Stock
+      ├─ System auto-updates inventory
+      └─ Sends confirmation SMS/WhatsApp to patient
+
+[ Admin / Owner ]
+      ├─ Monitors all transactions
+      ├─ Reconciliation report: Payments ↔ Consultations ↔ Prescriptions
+      └─ Fraud-alert dashboard (unpaid consults, no-stock anomalies)
+```
+
+---
+
+## ⚙️ 3. Modules Breakdown
+
+### 🏥 **Platform Module (Super-Admin Layer)**
+
+* Multi-tenant management (each hospital = tenant_id)
+* Subscription / plan management
+* Global analytics (total hospitals, users)
+* Tenant data isolation & backups
+
+### 👩‍⚕️ **Clinic Admin Module**
+
+* Dashboard overview (today’s patients, revenue)
+* Staff management (invite & assign roles)
+* Configure payment gateway / WhatsApp API / inventory settings
+* Audit logs & reports
+
+### 💁 **Reception Module**
+
+* Patient registration form → generates VisitID + QR + WhatsApp receipt
+* Payment capture (UPI / card / cash) + digital receipt
+* Appointment & queue management
+* View daily schedule, patient status (waiting / consulted)
+
+### 🩺 **Doctor Module**
+
+* View queue → open consultation
+* Patient history timeline (visits, meds, images)
+* Add notes, vitals, diagnosis, prescriptions
+* “Send to Pharmacy” button → notifies relevant pharmacy
+* Auto-lock record after completion
+
+### 💊 **Pharmacy Module**
+
+* Live prescriptions dashboard
+* Update each medicine: Purchased / No Stock / Denied
+* Inventory sync
+* Print bill + send confirmation WhatsApp
+* Daily stock & revenue summary
+
+### 🔍 **Audit & Fraud Detection**
+
+* Reconciliation engine checks:
+
+  * Registered patient without fee → flag
+  * Prescription without pharmacy update → flag
+  * Repeated “no stock” events → flag
+* Admin alert center with colored risk indicators.
+
+---
+
+## 🧩 4. Database Schema (Simplified ERD)
+
+```
+Hospitals
+ ├─ id, name, address, contact, plan_type
+ ├─ settings (json: WhatsApp API keys, payment mode)
+ └─ created_at
+
+Users
+ ├─ id, hospital_id (FK)
+ ├─ name, email, phone, role ['admin','reception','doctor','pharma']
+ ├─ password_hash, active
+ └─ created_at
+
+Patients
+ ├─ id, hospital_id, name, phone, dob, gender, address
+ └─ created_at
+
+Visits
+ ├─ id, patient_id, doctor_id, receptionist_id, hospital_id
+ ├─ visit_date, fee_amount, fee_paid:boolean, payment_mode
+ ├─ receipt_url, whatsapp_status
+ └─ status ['waiting','consulted','closed']
+
+Consultations
+ ├─ id, visit_id, summary, diagnosis, notes
+ └─ created_at
+
+Prescriptions
+ ├─ id, consultation_id, doctor_id, hospital_id
+ ├─ json_medicines [{drug, dose, duration}]
+ └─ created_at
+
+PharmaStatus
+ ├─ id, prescription_id, medicine_name
+ ├─ status ['purchased','no_stock','denied']
+ └─ updated_by
+
+Inventory
+ ├─ id, hospital_id, medicine_name, quantity
+ └─ updated_at
+
+AuditLog
+ ├─ id, hospital_id, user_id, action, entity, entity_id, timestamp
+```
+
+---
+
+## 🧰 5. Tech Stack Recommendation
+
+| Layer          | Stack                                                                     |
+| -------------- | ------------------------------------------------------------------------- |
+| **Frontend**   | Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui + React Query |
+| **Backend**    | Node.js / NestJS or Next API Routes + PostgreSQL (via Prisma ORM)         |
+| **Auth**       | Clerk / NextAuth with multi-tenant JWT claims (hospital_id + role)        |
+| **Realtime**   | Supabase channels / Pusher for live queue updates                         |
+| **Storage**    | Supabase or AWS S3 (for images & PDFs)                                    |
+| **Messaging**  | WhatsApp Cloud API (Meta Graph API for receipts & Rx delivery)            |
+| **Payment**    | Razorpay or Cashfree for digital receipts & reconciliation                |
+| **Deployment** | Vercel (frontend) + Railway / Supabase (DB + API)                         |
+| **Security**   | HTTPS + AES encryption for medical data + role-based ACL                  |
+| **Monitoring** | Logtail / Metabase for audit and reports                                  |
+
+---
+
+## 🖼️ 6. UI / UX Flow (High-Level)
+
+### 🏠 **Landing Page (Public)**
+
+* “For Hospitals / Clinics / Doctors” CTA → Register / Login
+* Explain fraud-prevention & transparency benefits.
+
+### 🔐 **Login Portal**
+
+* Email + Password → redirect based on role
+
+  * `/dashboard/admin`
+  * `/dashboard/reception`
+  * `/dashboard/doctor`
+  * `/dashboard/pharma`
+
+### 🧾 **Receptionist View**
+
+* “Register New Patient” button
+* Payment form → WhatsApp receipt preview
+* Live queue list (status badges)
+
+### 🩺 **Doctor View**
+
+* Patient list → open VisitID
+* Consultation editor + Rx builder
+* Send to pharmacy → WhatsApp Rx trigger
+* Patient summary panel (past visits)
+
+### 💊 **Pharma View**
+
+* Prescription queue table
+* Inline dropdowns for status update
+* Stock list sidebar
+
+### 🧮 **Admin View**
+
+* Summary cards (Today’s Patients / Revenue / Alerts)
+* Staff list + invite buttons
+* Audit logs viewer
+* Graphs for revenue & anomaly counts
+
+---
+
+## 📈 7. Development Roadmap (Phase 1)
+
+| Milestone                               | Key Deliverables                                         |
+| --------------------------------------- | -------------------------------------------------------- |
+| **M1 – Foundation (Week 1-2)**          | Project setup, auth, multi-tenant DB, role-based routing |
+| **M2 – Receptionist Module (Week 3-4)** | Patient registration, payment capture, WhatsApp receipt  |
+| **M3 – Doctor Module (Week 5-6)**       | Consultation editor, prescription builder, WhatsApp Rx   |
+| **M4 – Pharmacy Module (Week 7)**       | Rx queue, status updates, inventory management           |
+| **M5 – Admin & Audit (Week 8)**         | Reconciliation engine, reports, fraud alerts             |
+| **M6 – Testing & Launch**               | Data security audit, seed tenants, documentation         |
+
+---
+
+## 🧾 8. Expected Output (Phase 1)
+
+* ✅ One unified website (e.g., `app.medtrust.ai`)
+* ✅ Multi-hospital onboarding
+* ✅ Role-based dashboards
+* ✅ Digital receipts & prescriptions via WhatsApp
+* ✅ Complete patient–consultation–pharmacy audit trail
+* ✅ Foundational anti-fraud logic ready for AI analytics later
