@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { X, Building2, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { X, Building2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import workspacePreview from '@/images/Gemini_Generated_Image_ef9fx5ef9fx5ef9f.png';
 import './LoginModal.css';
 
 const defaultForm = {
   email: '',
   password: '',
-  organization: '',
-  fullName: '',
-  accountType: 'multi-location',
+  clinicId: '',
 };
 
 const LoginModal = ({ onClose, onSuccess }) => {
   const { login } = useAuth();
   const [form, setForm] = useState(defaultForm);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -40,25 +42,31 @@ const LoginModal = ({ onClose, onSuccess }) => {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const { email, password, organization, fullName, accountType } = form;
+    const { email, password, clinicId } = form;
 
-    if (!email || !password || !organization) {
-      setError('Please complete your email, password, and organization details to continue.');
+    if (!email || !password || !clinicId) {
+      setIsSubmitting(false);
+      setError('Please complete your email, password, and clinic ID to continue.');
       return;
     }
 
-    login({
-      email,
-      organization,
-      name: fullName || 'Clinic Owner',
-      accountType,
-    });
+    setError('');
+    setIsSubmitting(true);
 
-    setForm(defaultForm);
-    onClose();
-    if (onSuccess) {
-      onSuccess();
-    }
+    window.setTimeout(() => {
+      login({
+        email,
+        clinicId,
+      });
+
+      setForm(defaultForm);
+      setShowPassword(false);
+      setIsSubmitting(false);
+      onClose();
+      if (onSuccess) {
+        onSuccess();
+      }
+    }, 500);
   };
 
   return (
@@ -67,98 +75,101 @@ const LoginModal = ({ onClose, onSuccess }) => {
         <button className="close-button" onClick={onClose} aria-label="Close login">
           <X size={18} />
         </button>
-        <div className="login-header">
-          <div className="badge">
-            <ShieldCheck size={18} /> Secure Tenant Access
-          </div>
-          <h2>Sign in to your ClinicOS workspace</h2>
-          <p>Owners can onboard their teams, configure departments, and monitor activity in one place.</p>
-        </div>
-
-        <form className="login-form" onSubmit={handleSubmit}>
-          <label className="form-field">
-            <span>Email address</span>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="you@clinic.com"
-              autoComplete="email"
-              required
-            />
-          </label>
-
-          <label className="form-field">
-            <span>Password</span>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              required
-            />
-          </label>
-
-          <label className="form-field">
-            <span>Hospital / Clinic name</span>
-            <div className="input-with-icon">
-              <Building2 size={18} />
-              <input
-                type="text"
-                name="organization"
-                value={form.organization}
-                onChange={handleChange}
-                placeholder="Aurora Care Network"
-                autoComplete="organization"
-                required
-              />
+        <div className="login-content">
+          <div className="login-form-panel">
+            <div className="login-top-bar">
+              <div className="login-logo">MedTrust ClinicOS</div>
             </div>
-          </label>
+            <div className="login-header">
+              <h2>Welcome back</h2>
+              <p>Sign in to your MedTrust workspace.</p>
+            </div>
 
-          <label className="form-field">
-            <span>Primary contact name (optional)</span>
-            <input
-              type="text"
-              name="fullName"
-              value={form.fullName}
-              onChange={handleChange}
-              placeholder="Dr. Maya Srinivasan"
-              autoComplete="name"
-            />
-          </label>
+            <form className="login-form" onSubmit={handleSubmit}>
+              <label className="form-field">
+                <span>Email address</span>
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="you@clinic.com"
+                  autoComplete="email"
+                  required
+                />
+              </label>
 
-          <div className="practice-type">
-            <span>Practice setup</span>
-            <div className="toggle-group">
-              <button
-                type="button"
-                className={form.accountType === 'multi-location' ? 'active' : ''}
-                onClick={() => setForm((prev) => ({ ...prev, accountType: 'multi-location' }))}
-              >
-                Multi-location network
+              <label className="form-field">
+                <span>Password</span>
+                <div className="input-with-action">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </label>
+
+              <label className="form-field">
+                <span>Clinic ID</span>
+                <div className="input-with-icon">
+                  <Building2 size={18} />
+                  <input
+                    type="text"
+                    name="clinicId"
+                    value={form.clinicId}
+                    onChange={handleChange}
+                    placeholder="medtrust-hq"
+                    autoComplete="organization"
+                    required
+                  />
+                </div>
+              </label>
+
+              {error && <div className="error-message">{error}</div>}
+
+              <button type="submit" className="submit-button" disabled={isSubmitting}>
+                {isSubmitting ? 'Signing in… 🔄' : 'Sign In to Workspace'}
               </button>
-              <button
-                type="button"
-                className={form.accountType === 'single-doctor' ? 'active' : ''}
-                onClick={() => setForm((prev) => ({ ...prev, accountType: 'single-doctor' }))}
-              >
-                Independent doctor
-              </button>
+
+              <button type="button" className="link-button forgot-link">Forgot password?</button>
+              <div className="trust-text">🔒 Secure login for medical practices</div>
+            </form>
+
+            <div className="login-divider" role="presentation" />
+            <div className="new-practice">
+              New practice? <Link to="/contact" className="link-inline">Create an account →</Link>
+            </div>
+
+            <div className="login-footer">
+              <div className="compliance-text">SOC 2 • HIPAA • End-to-End Encryption</div>
+              <div className="footer-links">
+                <a href="#security" className="footer-link">Security</a>
+                <a href="#privacy" className="footer-link">Privacy Policy</a>
+                <a href="#terms" className="footer-link">Terms</a>
+              </div>
             </div>
           </div>
 
-          {error && <div className="error-message">{error}</div>}
-
-          <button type="submit" className="submit-button">
-            Sign in &amp; Continue
-          </button>
-        </form>
-
-        <div className="login-footer">
-          <p>Need an account? <a href="#contact">Talk to our team →</a></p>
+          <div className="login-visual-panel" aria-hidden="true">
+            <div className="visual-wordmark">MedTrust ClinicOS</div>
+            <div className="visual-image">
+              <img src={workspacePreview} alt="ClinicOS dashboard preview" />
+            </div>
+            <p className="visual-caption">Designed for clinicians who expect secure, seamless care coordination.</p>
+          </div>
         </div>
       </div>
     </div>

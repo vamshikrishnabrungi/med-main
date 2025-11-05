@@ -6,7 +6,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone
 
@@ -37,6 +37,18 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
+# Setup finalize models
+class SetupFinalizeInput(BaseModel):
+    clinicType: Optional[str] = None
+    clinicData: Optional[Dict[str, Any]] = None
+    teamProfiles: Optional[List[Dict[str, Any]]] = None
+
+class SetupFinalizeResponse(BaseModel):
+    status: str
+    finalizedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    workspaceId: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
@@ -65,6 +77,20 @@ async def get_status_checks():
             check['timestamp'] = datetime.fromisoformat(check['timestamp'])
     
     return status_checks
+
+@api_router.post("/setup/finalize", response_model=SetupFinalizeResponse)
+async def finalize_setup(payload: SetupFinalizeInput):
+    logger.info("Finalizing setup with payload: %s", payload.model_dump())
+    # In a real implementation, persist setup, send emails, create resources, etc.
+    response = SetupFinalizeResponse(
+        status="ok",
+        workspaceId=payload.clinicData.get("workspaceId") if payload.clinicData else None,
+        details={
+            "clinicType": payload.clinicType,
+            "teamProfilesCount": len(payload.teamProfiles or []),
+        },
+    )
+    return response
 
 # Include the router in the main app
 app.include_router(api_router)

@@ -14,6 +14,7 @@ import Contact from './pages/Contact';
 import EHRIntegrations from './pages/EHRIntegrations';
 import KLASReport from './pages/KLASReport';
 import Solutions from './pages/Solutions';
+import OwnerSummary from './pages/OwnerSummary';
 import OwnerDashboard from './pages/OwnerDashboard';
 import { AuthProvider } from './context/AuthContext';
 
@@ -36,6 +37,8 @@ function App() {
             <Route path="/ehr-integrations" element={<EHRIntegrations />} />
             <Route path="/klas" element={<KLASReport />} />
             <Route path="/owner-dashboard" element={<OwnerDashboard />} />
+            <Route path="/owner-dashboard/summary" element={<OwnerSummary />} />
+            <Route path="/setup/complete" element={<OwnerSummary />} />
           </Routes>
           <Footer />
         </div>
